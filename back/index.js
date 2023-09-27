@@ -21,24 +21,69 @@ connection.connect((err) => {
 
 const app = express();
 
-app.get('/brand/:id', (req, res) => {
-    const id = req.params.id
-  const sql = 'SELECT * FROM stations_brands';
+app.get('/station', async (req, res) => {
+  const cre_id = req.query.cre_id; // Usar req.query para obtener el parámetro cre_id
+  const stationQuery = 'SELECT * FROM stations WHERE cre_id = ?';
+  const brandQuery = 'SELECT * FROM stations_brands';
+  const prices = 'SELECT * FROM prices';
+  const nameBrand = 'SELECT * FROM brands WHERE id = ?';
 
-  connection.query(sql, (error, results) => {
-    if (error) {
-      console.error('Error al ejecutar la consulta SQL:', error);
-      res.status(500).json({ error: 'Error al obtener datos de la base de datos' });
-      return;
-    }
-    
-    // Envía los resultados como respuesta
-    res.json(results);
-  });
+  try {
+    const [stations, brands, price] = await Promise.all([
+      query(connection, stationQuery, [cre_id]),
+      query(connection, brandQuery),
+      query(connection, prices)
+    ]);
+
+    const priceStation = price.filter((ele) => {if(ele.cre_id === cre_id) return ele})
+    const branCorrect = brands.filter((ele) => {if(ele.cre_id === cre_id) return ele})
+
+    const nameBran = await query(connection, nameBrand, [branCorrect[0].id]);
+
+    const promPrice = calcularPromedio(priceStation)
+
+    const respuesta = {
+      Nombre: stations[0].name,
+      Marca: nameBran[0].name,
+      PrecioProducto: promPrice
+    };
+
+    res.json(respuesta);
+  } catch (error) {
+    console.error('Error al ejecutar la consulta SQL:', error);
+    res.status(500).json({ error: 'Error al obtener datos de la base de datos' });
+  }
 });
+
+// Función para realizar una consulta SQL con promesas
+function query(connection, sql, params = []) {
+  return new Promise((resolve, reject) => {
+    connection.query(sql, params, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+}
 
 // Inicia el servidor en el puerto 3000 (puedes cambiarlo si lo deseas)
 const port = 3000;
 app.listen(port, () => {
   console.log(`Servidor escuchando en el puerto ${port}`);
 });
+
+function calcularPromedio(prices) {
+    if (!prices || prices.length === 0) {
+      return 0;
+    }
+  
+    let suma = 0;
+    for (const price of prices) {
+      suma += price.value;
+    }
+  
+    const promedio = suma / prices.length;
+    return promedio;
+  }
