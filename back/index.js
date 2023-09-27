@@ -9,6 +9,10 @@ const dbConfig = {
   port: 3306,
 };
 
+// ejemplo utilizado
+// http://localhost:3000/station?cre_id=PL/1000/EXP/ES/2015
+
+
 const connection = mysql.createConnection(dbConfig);
 
 connection.connect((err) => {
@@ -22,7 +26,7 @@ connection.connect((err) => {
 const app = express();
 
 app.get('/station', async (req, res) => {
-  const cre_id = req.query.cre_id; // Usar req.query para obtener el parámetro cre_id
+  const cre_id = req.query.cre_id; 
   const stationQuery = 'SELECT * FROM stations WHERE cre_id = ?';
   const brandQuery = 'SELECT * FROM stations_brands';
   const prices = 'SELECT * FROM prices';
@@ -55,7 +59,6 @@ app.get('/station', async (req, res) => {
   }
 });
 
-// Función para realizar una consulta SQL con promesas
 function query(connection, sql, params = []) {
   return new Promise((resolve, reject) => {
     connection.query(sql, params, (error, results) => {
@@ -68,7 +71,6 @@ function query(connection, sql, params = []) {
   });
 }
 
-// Inicia el servidor en el puerto 3000 (puedes cambiarlo si lo deseas)
 const port = 3000;
 app.listen(port, () => {
   console.log(`Servidor escuchando en el puerto ${port}`);
